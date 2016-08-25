@@ -25,7 +25,7 @@ use Getopt::Long; # use GetOptions function to for CL args
 use warnings;
 use strict;
 
-my ($debug,$verbose,$help,$meancolumn,$infile,$log2,$limitIDfile);
+my ($debug,$verbose,$help,$meancolumn,$infile,$log2,$limitIDfile,$sn,$notransf,$nomean);
 
 my $result = GetOptions(
     "debug"     =>  \$debug,
@@ -34,6 +34,9 @@ my $result = GetOptions(
     "mean:i"    =>  \$meancolumn,
     "infile:s"  =>  \$infile,
     "log2"      =>  \$log2,
+    "sn"        =>  \$sn,
+    "notransf"  =>  \$notransf,
+    "nomean"    =>  \$nomean,
     "limit:s"   =>  \$limitIDfile,
 );
 
@@ -45,13 +48,16 @@ if ($help) {
 sub help {
 
     say <<HELP;
-    "debug"     =>  \$debug,
-    "verbose"   =>  \$verbose,
-    "help"      =>  \$help,
-    "mean:i"    =>  \$meancolumn, # default is last column
-    "infile:s"  =>  \$infile,
-    "log2"      =>  \$log2,
-    "limit:s"   =>  \$limitIDfile,
+    "debug"     
+    "verbose"   
+    "help"      
+    "mean:i"    
+    "infile:s"  
+    "log2"      
+    "sn"        
+    "notransf"
+    "nomean" **not yet implemented**
+    "limit:s"   
 
 
 HELP
@@ -87,35 +93,44 @@ while (<$IN>) {
     }
     #chomp(my $line = $_);
     say "line: '$line'" if ($debug);
-    #my @vals = split "\t", $line;
     say "length of \@vals: '" . scalar(@vals) . "'" if ($debug);
-    my $meanval = pop(@vals);
-    say "meanval: '$meanval'" if ($debug);
-    next unless ($meanval);
 
     my $gene = shift(@vals);
     if ($limitIDfile) {
         next unless $limitIds{$gene};
     }
 
-    say "will be calculating log FC for these values: '@vals'" if ($debug);
+    if ($notransf) {
 
-    my @logFC = ();
-    if ($log2) {
-        #@logFC = map {log($_/$meanval)/log(2)} @vals;
-        @logFC = map {$_ ? log($_/$meanval)/log(2) : log($meanval/$meanval)/log(2)} @vals;
+
     } else {
-        #@logFC = map {log($_/$meanval)/log(10)} @vals;
-        @logFC = map {$_ ? log($_/$meanval)/log(10) : log($meanval/$meanval)/log(10)} @vals;
-    }
+        my $meanval = pop(@vals);
+        say "meanval: '$meanval'" if ($debug);
+        next unless ($meanval);
 
-    say "logFC values: '@logFC'" if ($debug);
+        say "will be calculating log FC for these values: '@vals'" if ($debug);
 
-    if (!$printHeader) {
-        say $OUT $header;
-        ++$printHeader;
+        my @logFC = ();
+        if ($log2) {
+            #@logFC = map {log($_/$meanval)/log(2)} @vals;
+            @logFC = map {$_ ? log($_/$meanval)/log(2) : log($meanval/$meanval)/log(2)} @vals;
+        } else {
+            #@logFC = map {log($_/$meanval)/log(10)} @vals;
+            @logFC = map {$_ ? log($_/$meanval)/log(10) : log($meanval/$meanval)/log(10)} @vals;
+        }
+
+        if ($sn) {
+            @logFC = map { sprintf("%.2e", $_) } @logFC;
+        }
+
+        say "logFC values: '@logFC'" if ($debug);
+
+        if (!$printHeader) {
+            say $OUT $header;
+            ++$printHeader;
+        }
+        say $OUT "$gene\t" . join "\t", @logFC;
     }
-    say $OUT "$gene\t" . join "\t", @logFC;
 
     last if ($debug && ++$cnt > 10);
 }
