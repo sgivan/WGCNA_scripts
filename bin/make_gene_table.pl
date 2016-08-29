@@ -26,7 +26,7 @@ use warnings;
 use strict;
 use Statistics::Descriptive;
 
-my ($debug,$verbose,$help,$infile,$reps,$mean);
+my ($debug,$verbose,$help,$infile,$reps,$mean,$infofile);
 
 my $result = GetOptions(
     "debug"     =>  \$debug,
@@ -34,6 +34,7 @@ my $result = GetOptions(
     "help"      =>  \$help,
     "infile:s"  =>  \$infile,
     "reps:i"    =>  \$reps,
+    "info:s"    =>  \$infofile,
     "mean"      =>  \$mean,
 );
 
@@ -50,6 +51,7 @@ sub help {
     "help"      =>  \$help,
     "infile:s"  =>  \$infile,
     "reps:i"    =>  \$reps,
+    "infos"
     "mean"      =>  \$mean,
 
 HELP
@@ -68,6 +70,25 @@ my ($cnt, $repcnt, %table, @temparr) = (0,0);
 my ($lastgene) = ();
 my @header = ('gene');
 
+my %read_group_info;
+if ($infofile) {
+    # open and parse read_groups.info.txt file
+    open(my $INFO, "<", $infofile);
+    while (<$INFO>) {
+        chomp($_);
+        say "parsing $infofile line: '$_'";
+        my @ivals = split/\t/, $_;
+        say "extracting sample name from: '$ivals[0]'";
+        if($ivals[0] =~ /^(.+?)\//) {
+            say "sample name can be extracted: '$1'";
+            $read_group_info{$ivals[1] . "_" . $ivals[2]} = $1;
+        } else {
+            say "sample name cannot be extracted";
+            $read_group_info{$ivals[1] . "_". $ivals[2]} = $ivals[0];
+        }
+    }
+}
+
 while (<$IN>) {
     chomp(my $line = $_);
     my @vals = split /\t/, $line;
@@ -77,7 +98,12 @@ while (<$IN>) {
 
     say "processing line: '$line'" if ($debug);
     if (scalar(@header) <= $reps) {
-        push(@header,$vals[2]);
+        #push(@header,$vals[2]);
+        if ($infofile) {
+            push(@header, $read_group_info{$vals[1] . "_" .$vals[2]});
+        } else {
+            push(@header,$vals[1] . "_" .$vals[2]);
+        }
     }
     
     if (!$lastgene) {

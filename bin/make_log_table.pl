@@ -56,13 +56,20 @@ sub help {
     "log2"      
     "sn"        
     "notransf"
-    "nomean" **not yet implemented**
+    "nomean" 
     "limit:s"   
 
 
 HELP
 
 }
+
+# this is how I made the input file on the command line:
+
+#cat BPAH.read_group_tracking.txt | sed -E 's/BPAH\t0/BPAH\tBJL/' | sed -E 's/BPAH\t1/BPAH\tKNO/' | sed 's/BPAH\t2/BPAH\tAKV/' | sed 's/BPAH\t3/BPAH\tCKM/' | sed 's/BPAH\t4/BPAH\tCLP/' | cut -f 1,2,3,7 > BPAH.read_group_tracking.txt.01
+#join BPAH.read_group_tracking.txt.01_out.txt EE2.read_group_tracking.txt.01_out.txt > joined.txt
+#join joined.txt EtOH.read_group_tracking.txt.01_out.txt.meanonly.txt > joined2.txt 
+#sed -E 's/ /\t/g' joined2.txt > joined3.txt
 
 $infile = 'infile' unless ($infile);
 my $outfile = $infile . "_logFC.txt";
@@ -87,7 +94,7 @@ while (<$IN>) {
     chomp(my $line = $_);
     my @vals = split "\t", $line;
     if (++$cnt <= 1) {
-        pop(@vals);
+        pop(@vals) unless ($nomean);
         $header = join "\t", @vals;
         next;
     }
@@ -101,6 +108,15 @@ while (<$IN>) {
     }
 
     if ($notransf) {
+
+        say "will not be calculating log FC values" if ($debug);
+
+        if (!$printHeader) {
+            say $OUT $header;
+            ++$printHeader;
+        }
+
+        say $OUT "$gene\t" . join "\t", @vals;
 
 
     } else {
@@ -134,6 +150,8 @@ while (<$IN>) {
 
     last if ($debug && ++$cnt > 10);
 }
+
+close($OUT);
 
 
 
