@@ -120,26 +120,44 @@ while (<$IN>) {
 
 
     } else {
-        my $meanval = pop(@vals);
-        say "meanval: '$meanval'" if ($debug);
-        next unless ($meanval);
-
-        say "will be calculating log FC for these values: '@vals'" if ($debug);
-
         my @logFC = ();
-        if ($log2) {
-            #@logFC = map {log($_/$meanval)/log(2)} @vals;
-            @logFC = map {$_ ? log($_/$meanval)/log(2) : log($meanval/$meanval)/log(2)} @vals;
+        unless($nomean) {
+            my $meanval = pop(@vals);
+            say "meanval: '$meanval'" if ($debug);
+            next unless ($meanval);
+
+            say "will be calculating log FC for these values: '@vals'" if ($debug);
+
+            @logFC = ();
+            if ($log2) {
+                #@logFC = map {log($_/$meanval)/log(2)} @vals;
+                @logFC = map {$_ ? log($_/$meanval)/log(2) : log($meanval/$meanval)/log(2)} @vals;
+            } else {
+                #@logFC = map {log($_/$meanval)/log(10)} @vals;
+                @logFC = map {$_ ? log($_/$meanval)/log(10) : log($meanval/$meanval)/log(10)} @vals;
+            }
+
+            if ($sn) {
+                @logFC = map { sprintf("%.2e", $_) } @logFC;
+            }
+
+            say "logFC values: '@logFC'" if ($debug);
         } else {
-            #@logFC = map {log($_/$meanval)/log(10)} @vals;
-            @logFC = map {$_ ? log($_/$meanval)/log(10) : log($meanval/$meanval)/log(10)} @vals;
-        }
 
-        if ($sn) {
-            @logFC = map { sprintf("%.2e", $_) } @logFC;
-        }
+            @logFC = ();
+            if ($log2) {
+                #@logFC = map {log($_/$meanval)/log(2)} @vals;
+                @logFC = map {$_ ? log($_)/log(2) : 0} @vals;
+            } else {
+                #@logFC = map {log($_/$meanval)/log(10)} @vals;
+                @logFC = map {$_ ? log($_)/log(10) : 0} @vals;
+            }
 
-        say "logFC values: '@logFC'" if ($debug);
+            if ($sn) {
+                @logFC = map { sprintf("%.2e", $_) } @logFC;
+            }
+
+        }
 
         if (!$printHeader) {
             say $OUT $header;
